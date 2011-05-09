@@ -4,8 +4,12 @@
 
 package dhcpserver;
 
+import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 
+import java.net.SocketException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.jdesktop.application.Application;
 import org.jdesktop.application.SingleFrameApplication;
 
@@ -42,5 +46,19 @@ public class DHCPServerApp extends SingleFrameApplication {
      */
     public static void main(String[] args) {
         launch(DHCPServerApp.class, args);
+
+        DatagramSocket socket;
+        try {
+            socket = new DatagramSocket(68);
+
+            byte buffer[] = new byte[1000];
+            DatagramPacket datagram = new DatagramPacket(buffer, buffer.length);
+            socket.receive(datagram);
+
+            DHCPPacket packet(datagram.getData());
+            
+            
+
+        } catch (Exception e) {}
     }
 }
