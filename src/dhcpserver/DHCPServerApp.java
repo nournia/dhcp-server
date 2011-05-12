@@ -7,6 +7,7 @@ package dhcpserver;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 
+import java.net.InetAddress;
 import java.net.SocketException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -47,18 +48,34 @@ public class DHCPServerApp extends SingleFrameApplication {
     public static void main(String[] args) {
         launch(DHCPServerApp.class, args);
 
-        DatagramSocket socket;
+        System.out.println("dhcp server launched");
+
+        byte buffer[] = new byte[1000];
+
         try {
-            socket = new DatagramSocket(68);
+            DatagramSocket socket = new DatagramSocket(67);
+            System.out.println("waiting for discover packet");
 
-            byte buffer[] = new byte[1000];
-            DatagramPacket datagram = new DatagramPacket(buffer, buffer.length);
-            socket.receive(datagram);
+            while (true) { try {
+                // receive
+                for (int i = 0; i < 1000; i++) buffer[i] = 0;
+                DatagramPacket datagram = new DatagramPacket(buffer, buffer.length);
+                socket.receive(datagram);
 
-            DHCPPacket packet(datagram.getData());
-            
-            
+                // read
+                DHCPPacket packet = new DHCPPacket();
+                packet.readMessage(buffer, datagram.getLength());
 
-        } catch (Exception e) {}
+                // write
+                for (int i = 0; i < 1000; i++) buffer[i] = 0;
+                packet.writeOffer(buffer);
+
+                // send
+                DatagramPacket sendPacket = new DatagramPacket(buffer, DHCPPacket.index, InetAddress.getByName("255.255.255.255"), 68);
+                socket.send(sendPacket);
+
+                } catch (Exception e) { System.out.println( e.getMessage()); }
+            }
+        } catch (Exception e) { System.out.println( e.getMessage()); }
     }
 }

@@ -11,10 +11,10 @@ public class DHCPPacket {
 
     HashMap<String, byte[]> data = new HashMap<String, byte[]>();
 
-    public static byte[] extractBytes(byte[] buffer, int from, int to)
+    public static byte[] extractBytes(byte[] buffer, int from, int length)
     {
-        byte[] result = new byte[to - from];
-        System.arraycopy(buffer, index, result, 0, to - from);
+        byte[] result = new byte[length];
+        System.arraycopy(buffer, from, result, 0, length);
         return result;
     }
 
@@ -24,10 +24,10 @@ public class DHCPPacket {
         data.put("chaddr", extractBytes(buffer, 28, 16));
 
         int msgType = 0; // invalid 
-        byte[] options = extractBytes(buffer, 140, length - 140);
-        for (int i = 0; i < options.length; i++)
+        byte[] options = extractBytes(buffer, 240, length - 240);
+        for (int i = 0; i < options.length - 1; i++)
         {
-            byte[] value = extractBytes(options, i+2, i+2 + options[i+1]);
+            byte[] value = extractBytes(options, i+2, options[i+1]);
             
             switch (options[i])
             {
@@ -36,9 +36,10 @@ public class DHCPPacket {
                 break;
             }
 
-            i += options[i+1] + 2;
+            i += options[i+1] + 1;
         }
 
+        System.out.println(msgType);
         return msgType;
     }
 
@@ -71,20 +72,20 @@ public class DHCPPacket {
         InetAddress myIP = InetAddress.getLocalHost();
 
         index = 0;
-        addBytes(getByteArray(new int[] {2}), buffer);
-        addBytes(getByteArray(new int[] {1}), buffer);
-        addBytes(getByteArray(new int[] {6}), buffer);
-        addBytes(getByteArray(new int[] {0}), buffer);
+        addBytes(getByteArray(new int[] {2}), buffer); // op
+        addBytes(getByteArray(new int[] {1}), buffer); // htype
+        addBytes(getByteArray(new int[] {6}), buffer); // hlen
+        addBytes(getByteArray(new int[] {0}), buffer); // hops
         addBytes(data.get("xid"), buffer);
-        addBytes(data.get("secs"), buffer);
-        addBytes(data.get("flags"), buffer);
-        addBytes(data.get("ciaddr"), buffer);
+        addBytes(getByteArray(new int[] {0, 0}), buffer); // secs
+        addBytes(getByteArray(new int[] {128, 0}), buffer); // flags
+        addBytes(getByteArray(new int[] {0, 0, 0, 0}), buffer); // ciaddr
         addBytes(ip, buffer);
         addBytes(myIP.getAddress(), buffer);
-        addBytes(data.get("giaddr"), buffer);
+        addBytes(getByteArray(new int[] {0, 0, 0, 0}), buffer); // giaddr
         addBytes(data.get("chaddr"), buffer);
-        addBytes(data.get("chaddr"), buffer);
-        addBytes(data.get("file"), buffer);
+        index += 64; // sname
+        index += 128; // file
 
         // options
         
@@ -92,15 +93,17 @@ public class DHCPPacket {
         addBytes(getByteArray(new int[] {53, 1, 2}), buffer); 
         
         // DHCP Server Identifier
-        addBytes(getByteArray(new int[] {54, 4}), buffer);
-        addBytes(myIP.getAddress(), buffer);
+        addBytes(getByteArray(new int[] {54, 4}), buffer); addBytes(myIP.getAddress(), buffer);
 
         // Subnet Mask = 255.255.255.0
         addBytes(getByteArray(new int[] {1, 4, 255,255,255,0}), buffer);
         
         // IP Address Lease Time = 1 day
-        addBytes(getByteArray(new int[] {51, 4}), buffer);
-        addBytes(intToByteArray(24 * 3600), buffer);
+        addBytes(getByteArray(new int[] {51, 4}), buffer); addBytes(intToByteArray(24 * 3600), buffer);
+        // Rebinding Time = 0.75 day
+        addBytes(getByteArray(new int[] {59, 4}), buffer); addBytes(intToByteArray(18 * 3600), buffer);
+        // Renewal Time = 0.5 day
+        addBytes(getByteArray(new int[] {58, 4}), buffer); addBytes(intToByteArray(12 * 3600), buffer);
 
         } catch (Exception e) { System.out.println(e.getMessage());}
     }
