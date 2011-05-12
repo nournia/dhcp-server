@@ -11,12 +11,37 @@ public class DHCPPacket {
 
     HashMap<String, byte[]> data = new HashMap<String, byte[]>();
 
-    public static byte[] extractBytes(byte[] buffer, int from, int length)
+    public static byte[] extractBytes(byte[] buffer, int from, int to)
     {
-        byte[] result = new byte[length];
-        System.arraycopy(buffer, from, result, 0, length);
+        byte[] result = new byte[to - from];
+        System.arraycopy(buffer, index, result, 0, to - from);
         return result;
     }
+
+    public int readMessage (byte[] buffer, int length)
+    {
+        data.put("xid", extractBytes(buffer, 4, 4));
+        data.put("chaddr", extractBytes(buffer, 28, 16));
+
+        int msgType = 0; // invalid 
+        byte[] options = extractBytes(buffer, 140, length - 140);
+        for (int i = 0; i < options.length; i++)
+        {
+            byte[] value = extractBytes(options, i+2, i+2 + options[i+1]);
+            
+            switch (options[i])
+            {
+                case 53:
+                    msgType = value[0];
+                break;
+            }
+
+            i += options[i+1] + 2;
+        }
+
+        return msgType;
+    }
+
 
     public static byte[] getByteArray(int[] bytes)
     {
@@ -34,26 +59,7 @@ public class DHCPPacket {
     }
 
     public static final byte[] intToByteArray(int value) {
-        return new byte[]{
-            (byte)(value >>> 24), (byte)(value >> 16 & 0xff), (byte)(value >> 8 & 0xff), (byte)(value & 0xff) };
-    }
-
-    public void readDiscover (byte[] buffer)
-    {
-//        data.put("op", extractBytes(buffer, 0, 1));
-//        data.put("htype", extractBytes(buffer, 1, 1));
-//        data.put("hlen", extractBytes(buffer, 2, 1));
-//        data.put("hops", extractBytes(buffer, 3, 1));
-        data.put("xid", extractBytes(buffer, 4, 4));
-        data.put("secs", extractBytes(buffer, 8, 2));
-        data.put("flags", extractBytes(buffer, 10, 2));
-        data.put("ciaddr", extractBytes(buffer, 12, 4));
-        data.put("yiaddr", extractBytes(buffer, 16, 4));
-        data.put("siaddr", extractBytes(buffer, 20, 4));
-        data.put("giaddr", extractBytes(buffer, 24, 4));
-        data.put("chaddr", extractBytes(buffer, 28, 16));
-        data.put("sname", extractBytes(buffer, 44, 64));
-        data.put("file", extractBytes(buffer, 108, 128));
+        return new byte[]{ (byte)(value >>> 24), (byte)(value >> 16 & 0xff), (byte)(value >> 8 & 0xff), (byte)(value & 0xff) };
     }
 
     public void writeOffer (byte[] buffer)
@@ -86,6 +92,7 @@ public class DHCPPacket {
         addBytes(getByteArray(new int[] {53, 1, 2}), buffer); 
         
         // DHCP Server Identifier
+        addBytes(getByteArray(new int[] {54, 4}), buffer);
         addBytes(myIP.getAddress(), buffer);
 
         // Subnet Mask = 255.255.255.0
