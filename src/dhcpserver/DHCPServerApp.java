@@ -51,6 +51,7 @@ public class DHCPServerApp extends SingleFrameApplication {
         System.out.println("dhcp server launched");
 
         byte buffer[] = new byte[1000];
+        DHCPController controller = new DHCPController();
 
         try {
             DatagramSocket socket = new DatagramSocket(67);
@@ -58,20 +59,14 @@ public class DHCPServerApp extends SingleFrameApplication {
 
             while (true) { try {
                 // receive
-                for (int i = 0; i < 1000; i++) buffer[i] = 0;
                 DatagramPacket datagram = new DatagramPacket(buffer, buffer.length);
                 socket.receive(datagram);
 
                 // read
-                DHCPPacket packet = new DHCPPacket();
-                packet.readMessage(buffer, datagram.getLength());
-
-                // write
-                for (int i = 0; i < 1000; i++) buffer[i] = 0;
-                packet.writeOffer(buffer);
+                controller.readMessage(buffer, datagram.getLength());
 
                 // send
-                DatagramPacket sendPacket = new DatagramPacket(buffer, DHCPPacket.index, InetAddress.getByName("255.255.255.255"), 68);
+                DatagramPacket sendPacket = new DatagramPacket(controller.response, controller.index, InetAddress.getByAddress(new byte[]{-1, -1, -1, -1}), 68);
                 socket.send(sendPacket);
 
                 } catch (Exception e) { System.out.println( e.getMessage()); }
