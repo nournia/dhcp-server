@@ -63,14 +63,14 @@ public class DHCPServerApp extends SingleFrameApplication {
                 socket.receive(datagram);
 
                 // read
-                controller.readMessage(buffer, datagram.getLength());
-
-                // send
-                DatagramPacket sendPacket = new DatagramPacket(controller.response, controller.index, InetAddress.getByAddress(new byte[]{-1, -1, -1, -1}), 68);
-                socket.send(sendPacket);
-
-                } catch (Exception e) { System.out.println( e.getMessage()); }
-            }
+                if (controller.readMessage(buffer, datagram.getLength()))
+                {
+                    // send
+                    DatagramPacket sendPacket = new DatagramPacket(controller.response, controller.index, InetAddress.getByAddress(new byte[]{-1, -1, -1, -1}), 68);
+                    socket.send(sendPacket);
+                }
+            } catch (Exception e) { System.out.println( e.getMessage()); }
+        }
         } catch (Exception e) { System.out.println( e.getMessage()); }
     }
 }

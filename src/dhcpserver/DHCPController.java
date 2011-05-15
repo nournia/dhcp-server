@@ -4,18 +4,20 @@ package dhcpserver;
 import java.net.InetAddress;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
 
 public class DHCPController {
 
     // database
     class DHCPRecord {
         byte[] ip = new byte[4];
-        byte[] chaddr = new byte[16];
         boolean acked = false;
         Date ackTime = new Date();
     }
 
-    // database key is xid
+    // database key is client mac address
     HashMap<byte[], DHCPRecord> database = new HashMap<byte[], DHCPRecord>();
 
     // options
@@ -32,9 +34,39 @@ public class DHCPController {
         dnsServer = new byte[] {(byte)4, (byte)2, (byte)2, (byte)4};
     }
 
+    byte[] lastIp;
     byte[] getNewIp()
     {
-        return ipRangeFirst;
+        if (lastIp == null)
+            System.arraycopy(ipRangeFirst, 0, lastIp, 0, 4);
+        else {
+            lastIp[3]++;
+            if (lastIp[3] == 0)
+            {
+                lastIp[2]++;
+                if (lastIp[2] == 0)
+                {
+                    lastIp[1]++;
+                    if (lastIp[1] == 0)
+                    {
+                        lastIp[0]++;
+                        if (lastIp[0] == 0)
+                            return null;
+                    }
+                }
+            }
+        }
+
+        if (lastIp[0] >= ipRangeLast[0] &&
+            lastIp[1] >= ipRangeLast[1] &&
+            lastIp[2] >= ipRangeLast[2] &&
+            lastIp[3] > ipRangeLast[3])
+        {
+            System.arraycopy(ipRangeLast, 0, lastIp, 0, 4);
+            return null;
+        }
+
+        return lastIp;
     }
 
 
@@ -45,13 +77,13 @@ public class DHCPController {
         return result;
     }
 
-    public int readMessage (byte[] buffer, int length)
+    public boolean readMessage (byte[] buffer, int length)
     {
         byte[] xid = extractBytes(buffer, 4, 4);
         byte[] chaddr = extractBytes(buffer, 28, 16);
-        byte[] requestedIpAddress;
+        byte[] ip;
 
-        int msgType = 0; // invalid 
+        int msgType = 0; // invalid message
         byte[] options = extractBytes(buffer, 240, length - 240);
         for (int i = 0; i < options.length - 1; i++)
         {
@@ -64,27 +96,33 @@ public class DHCPController {
                 break;
 
                 case 50:
-                    requestedIpAddress = value;
+                    ip = value; // requested ip address
                 break;
             }
 
             i += options[i+1] + 1;
         }
 
+        // controll part --------------------------------------------------------
 
+        ip = getNewIp();
         DHCPRecord record = new DHCPRecord();
-        record.ip = getNewIp();
-        record.chaddr = chaddr;
-        database.put(xid, record);
-        
-        // controll part
-        if (msgType == 1)
-            writeResponse(2, xid);
-        else if (msgType == 3)
-            writeResponse(5, xid);
+        record.ip = ip;
+        database.put(chaddr, record);
         
         System.out.println(msgType);
-        return msgType;
+
+        int response = 0;
+        
+        if (msgType == 1)
+            response = 2;
+        else if (msgType == 3)
+            ;//response = 5;
+
+        if (response != 0)
+            return writeResponse(response, xid, ip, chaddr);
+
+        return false;
     }
 
 
@@ -108,12 +146,10 @@ public class DHCPController {
 
     public int index;
     public byte[] response;
-    public void writeResponse (int msgType, byte[] xid)
+    public boolean writeResponse (int msgType, byte[] xid, byte[] ip, byte[] chaddr)
     {
         response = new byte[1000];
         for (int i = 0; i < response.length; i++) response[i] = 0;
-
-        DHCPRecord record = database.get(xid);
 
         try {
 
@@ -128,10 +164,10 @@ public class DHCPController {
         addResponseBytes(new byte[] {0, 0}); // secs
         addResponseBytes(new byte[] {(byte)128, 0}); // flags
         addResponseBytes(new byte[] {0, 0, 0, 0}); // ciaddr
-        addResponseBytes(record.ip);
+        addResponseBytes(ip);
         addResponseBytes(myIP.getAddress());
         addResponseBytes(new byte[] {0, 0, 0, 0}); // giaddr
-        addResponseBytes(record.chaddr);
+        addResponseBytes(chaddr);
         index += 64; // sname
         index += 128; // file
 
@@ -161,6 +197,10 @@ public class DHCPController {
         // Renewal Time = 0.5 day
         addResponseBytes(new byte[] {58, 4}); addResponseBytes(intToByteArray(12 * 3600));
 
+        return true;
+
         } catch (Exception e) { System.out.println(e.getMessage());}
+
+        return false;
     }
 }
