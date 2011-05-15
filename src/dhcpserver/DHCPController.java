@@ -38,7 +38,10 @@ public class DHCPController {
     byte[] getNewIp()
     {
         if (lastIp == null)
+        {
+            lastIp = new byte[4];
             System.arraycopy(ipRangeFirst, 0, lastIp, 0, 4);
+        }
         else {
             lastIp[3]++;
             if (lastIp[3] == 0)
@@ -57,10 +60,10 @@ public class DHCPController {
             }
         }
 
-        if (lastIp[0] >= ipRangeLast[0] &&
-            lastIp[1] >= ipRangeLast[1] &&
-            lastIp[2] >= ipRangeLast[2] &&
-            lastIp[3] > ipRangeLast[3])
+        if (byteToInt(lastIp[0]) >= byteToInt(ipRangeLast[0]) &&
+            byteToInt(lastIp[1]) >= byteToInt(ipRangeLast[1]) &&
+            byteToInt(lastIp[2]) >= byteToInt(ipRangeLast[2]) &&
+            byteToInt(lastIp[3]) > byteToInt(ipRangeLast[3]))
         {
             System.arraycopy(ipRangeLast, 0, lastIp, 0, 4);
             return null;
@@ -69,6 +72,10 @@ public class DHCPController {
         return lastIp;
     }
 
+    public static int byteToInt(byte b)
+    {
+        return (int) b & 0xFF;
+    }
 
     public static byte[] extractBytes(byte[] buffer, int from, int length)
     {
