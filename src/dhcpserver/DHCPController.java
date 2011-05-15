@@ -1,15 +1,42 @@
 
 package dhcpserver;
 
-import com.sun.xml.internal.ws.util.ByteArrayBuffer;
 import java.net.InetAddress;
+import java.util.Date;
 import java.util.HashMap;
-import java.util.concurrent.ExecutionException;
-import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
 
 public class DHCPController {
 
-    HashMap<String, byte[]> data;
+    // database
+    class DHCPRecord {
+        byte[] ip = new byte[4];
+        byte[] chaddr = new byte[16];
+        boolean acked = false;
+        Date ackTime = new Date();
+    }
+
+    // database key is xid
+    HashMap<byte[], DHCPRecord> database = new HashMap<byte[], DHCPRecord>();
+
+    // options
+    byte[] ipRangeFirst, ipRangeLast;
+    byte[] subnetMask, defaultGateway, dnsServer;
+
+    public DHCPController()
+    {
+        ipRangeFirst = new byte[] {(byte)192, (byte)168, (byte)0, (byte)0};
+        ipRangeLast = new byte[] {(byte)192, (byte)168, (byte)255, (byte)255};
+
+        subnetMask = new byte[] {(byte)255, (byte)255, (byte)255, (byte)0};
+        defaultGateway = new byte[] {(byte)192, (byte)168, (byte)134, (byte)1};
+        dnsServer = new byte[] {(byte)4, (byte)2, (byte)2, (byte)4};
+    }
+
+    byte[] getNewIp()
+    {
+        return ipRangeFirst;
+    }
+
 
     public static byte[] extractBytes(byte[] buffer, int from, int length)
     {
@@ -20,10 +47,9 @@ public class DHCPController {
 
     public int readMessage (byte[] buffer, int length)
     {
-        data = new HashMap<String, byte[]>();
-
-        data.put("xid", extractBytes(buffer, 4, 4));
-        data.put("chaddr", extractBytes(buffer, 28, 16));
+        byte[] xid = extractBytes(buffer, 4, 4);
+        byte[] chaddr = extractBytes(buffer, 28, 16);
+        byte[] requestedIpAddress;
 
         int msgType = 0; // invalid 
         byte[] options = extractBytes(buffer, 240, length - 240);
@@ -38,19 +64,24 @@ public class DHCPController {
                 break;
 
                 case 50:
-                    //msgType = 3;
+                    requestedIpAddress = value;
                 break;
             }
 
             i += options[i+1] + 1;
         }
 
+
+        DHCPRecord record = new DHCPRecord();
+        record.ip = getNewIp();
+        record.chaddr = chaddr;
+        database.put(xid, record);
         
         // controll part
         if (msgType == 1)
-            writeResponse(2);
+            writeResponse(2, xid);
         else if (msgType == 3)
-            writeResponse(5);
+            writeResponse(5, xid);
         
         System.out.println(msgType);
         return msgType;
@@ -77,12 +108,12 @@ public class DHCPController {
 
     public int index;
     public byte[] response;
-    public void writeResponse (int msgType)
+    public void writeResponse (int msgType, byte[] xid)
     {
         response = new byte[1000];
         for (int i = 0; i < response.length; i++) response[i] = 0;
 
-        byte[] ip = getByteArray(new int[] {192, 168, 134, 199});
+        DHCPRecord record = database.get(xid);
 
         try {
 
@@ -93,14 +124,14 @@ public class DHCPController {
         addResponseBytes(new byte[] {1}); // htype
         addResponseBytes(new byte[] {6}); // hlen
         addResponseBytes(new byte[] {0}); // hops
-        addResponseBytes(data.get("xid"));
+        addResponseBytes(xid);
         addResponseBytes(new byte[] {0, 0}); // secs
         addResponseBytes(new byte[] {(byte)128, 0}); // flags
         addResponseBytes(new byte[] {0, 0, 0, 0}); // ciaddr
-        addResponseBytes(ip);
+        addResponseBytes(record.ip);
         addResponseBytes(myIP.getAddress());
         addResponseBytes(new byte[] {0, 0, 0, 0}); // giaddr
-        addResponseBytes(data.get("chaddr"));
+        addResponseBytes(record.chaddr);
         index += 64; // sname
         index += 128; // file
 
@@ -115,13 +146,13 @@ public class DHCPController {
         addResponseBytes(new byte[] {54, 4}); addResponseBytes(myIP.getAddress());
 
         // Subnet Mask = 255.255.255.0
-        addResponseBytes(new byte[] {1, 4, (byte)255, (byte)255, (byte)255, (byte)0});
+        addResponseBytes(new byte[] {1, 4}); addResponseBytes(subnetMask);
 
         // Default Gateway
-        addResponseBytes(new byte[] {3, 4, (byte)192, (byte)168, (byte)134, (byte)1});
+        addResponseBytes(new byte[] {3, 4}); addResponseBytes(defaultGateway);
 
         // DNS Server
-        addResponseBytes(new byte[] {6, 4, (byte)4, (byte)2, (byte)2, (byte)4});
+        addResponseBytes(new byte[] {6, 4}); addResponseBytes(defaultGateway);
 
         // IP Address Lease Time = 1 day
         addResponseBytes(new byte[] {51, 4}); addResponseBytes(intToByteArray(24 * 3600));
