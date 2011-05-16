@@ -2,19 +2,8 @@
 package dhcpserver;
 
 import java.net.InetAddress;
-import java.util.Date;
-import java.util.HashMap;
 
 public class DHCPController {
-
-    // database
-    class DHCPRecord {
-        byte[] ip = new byte[4];
-        Date ackTime;
-    }
-
-    // database key is client mac address
-    HashMap<byte[], DHCPRecord> database = new HashMap<byte[], DHCPRecord>();
 
     // options
     byte[] ipRangeFirst, ipRangeLast;
@@ -111,12 +100,14 @@ public class DHCPController {
         System.out.println(msgType);
 
         // extract or create record for client
-        DHCPRecord record = database.get(chaddr);
-        if (record == null)
+        DHCPRecord record = DHCPDatabase.getRecord(chaddr);
+        if (record == null || true)
         {
             record = new DHCPRecord();
             record.ip = getNewIp();
-            database.put(chaddr, record);
+            record.chaddr = chaddr;
+            DHCPDatabase.data.add(record);
+            DHCPDatabase.model.fireTableDataChanged();
         }
 
         // decide on client request
