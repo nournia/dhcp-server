@@ -4,17 +4,13 @@ package dhcpserver;
 import java.net.InetAddress;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
 
 public class DHCPController {
 
     // database
     class DHCPRecord {
         byte[] ip = new byte[4];
-        boolean acked = false;
-        Date ackTime = new Date();
+        Date ackTime;
     }
 
     // database key is client mac address
@@ -43,6 +39,7 @@ public class DHCPController {
             System.arraycopy(ipRangeFirst, 0, lastIp, 0, 4);
         }
         else {
+            // increment ip
             lastIp[3]++;
             if (lastIp[3] == 0)
             {
@@ -60,10 +57,8 @@ public class DHCPController {
             }
         }
 
-        if (byteToInt(lastIp[0]) >= byteToInt(ipRangeLast[0]) &&
-            byteToInt(lastIp[1]) >= byteToInt(ipRangeLast[1]) &&
-            byteToInt(lastIp[2]) >= byteToInt(ipRangeLast[2]) &&
-            byteToInt(lastIp[3]) > byteToInt(ipRangeLast[3]))
+        // out of range ip
+        if (compareIPs(lastIp, ipRangeFirst) == -1 || compareIPs(lastIp, ipRangeLast) == 1)
         {
             System.arraycopy(ipRangeLast, 0, lastIp, 0, 4);
             return null;
@@ -71,6 +66,8 @@ public class DHCPController {
 
         return lastIp;
     }
+
+
 
     public static int byteToInt(byte b)
     {
@@ -88,7 +85,7 @@ public class DHCPController {
     {
         byte[] xid = extractBytes(buffer, 4, 4);
         byte[] chaddr = extractBytes(buffer, 28, 16);
-        byte[] ip;
+        byte[] ip = new byte[4];
 
         int msgType = 0; // invalid message
         byte[] options = extractBytes(buffer, 240, length - 240);
@@ -110,28 +107,54 @@ public class DHCPController {
             i += options[i+1] + 1;
         }
 
-        // controll part --------------------------------------------------------
-
-        ip = getNewIp();
-        DHCPRecord record = new DHCPRecord();
-        record.ip = ip;
-        database.put(chaddr, record);
-        
+        // controll part -------------------------------------------------------
         System.out.println(msgType);
 
-        int response = 0;
-        
-        if (msgType == 1)
-            response = 2;
-        else if (msgType == 3)
-            ;//response = 5;
+        // extract or create record for client
+        DHCPRecord record = database.get(chaddr);
+        if (record == null)
+        {
+            record = new DHCPRecord();
+            record.ip = getNewIp();
+            database.put(chaddr, record);
+        }
 
-        if (response != 0)
-            return writeResponse(response, xid, ip, chaddr);
+        // decide on client request
+        int responseType = 0;
+
+        switch (msgType)
+        {
+            // Discover
+            case 1:
+               responseType = 2; // Offer
+            break;
+
+            // Request
+            case 3:
+                if (compareIPs(ip, record.ip) == 0)
+                {
+                    //record.ackTime = new Date(); // now
+                    //responseType = 5; // Ack
+                }
+            break;
+        }
+
+        if (responseType != 0)
+            return writeResponse(responseType, xid, record.ip, chaddr);
 
         return false;
     }
 
+    // ip1 > ip2 : 1, ip1 == ip2 : 0, ip1 < ip2 : -1
+    public static int compareIPs(byte[] ip1, byte[] ip2)
+    {
+        for (int i = 0; i < 4; i++)
+            if (byteToInt(ip1[i]) > byteToInt(ip2[i]))
+                return 1;
+            else if (byteToInt(ip1[i]) < byteToInt(ip2[i]))
+                return -1;
+        return 0;
+    }
 
     public static byte[] getByteArray(int[] bytes)
     {
