@@ -8,6 +8,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 
 import java.net.InetAddress;
+import java.util.EventObject;
 import org.jdesktop.application.Application;
 import org.jdesktop.application.SingleFrameApplication;
 
@@ -49,6 +50,19 @@ public class DHCPServerApp extends SingleFrameApplication {
      * At startup create and show the main frame of the application.
      */
     @Override protected void startup() {
+
+        addExitListener(new ExitListener() {
+            public boolean canExit(EventObject e) {
+
+                DHCPDatabase.writeToFile();
+
+                return true;
+            }
+            public void willExit(EventObject event) {
+
+            }
+        });
+
         show(new DHCPServerView(this));
     }
 
