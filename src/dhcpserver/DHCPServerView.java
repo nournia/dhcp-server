@@ -82,9 +82,6 @@ public class DHCPServerView extends FrameView {
         });
 
         jTable1.setModel(DHCPDatabase.model);
-
-//        TableUpdater updater = new TableUpdater();
-//        updater.start();
     }
 
     @Action
@@ -254,19 +251,4 @@ public class DHCPServerView extends FrameView {
     private int busyIconIndex = 0;
 
     private JDialog aboutBox;
-
-
-/*
-    class TableUpdater extends Thread
-    {
-        public void run()
-        {
-            while (true)
-            {
-//                jTable1.set
-
-            }
-        }
-    }*/
-
 }

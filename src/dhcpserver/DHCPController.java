@@ -2,6 +2,8 @@
 package dhcpserver;
 
 import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.Date;
 
 public class DHCPController {
 
@@ -47,7 +49,7 @@ public class DHCPController {
         }
 
         // out of range ip
-        if (compareIPs(lastIp, ipRangeFirst) == -1 || compareIPs(lastIp, ipRangeLast) == 1)
+        if (compareIPs(lastIp, ipRangeFirst) < 0 || compareIPs(lastIp, ipRangeLast) > 0)
         {
             System.arraycopy(ipRangeLast, 0, lastIp, 0, 4);
             return null;
@@ -70,11 +72,11 @@ public class DHCPController {
         return result;
     }
 
-    public boolean readMessage (byte[] buffer, int length)
+    public boolean readMessage (byte[] buffer, int length) throws UnknownHostException
     {
         byte[] xid = extractBytes(buffer, 4, 4);
-        byte[] chaddr = extractBytes(buffer, 28, 16);
-        byte[] ip = new byte[4];
+        byte[] chaddr = extractBytes(buffer, 28, 6);
+        byte[] rquestedIp = new byte[4], serverIp = new byte[4], subnet = new byte[4];
 
         int msgType = 0; // invalid message
         byte[] options = extractBytes(buffer, 240, length - 240);
@@ -84,12 +86,24 @@ public class DHCPController {
             
             switch (options[i])
             {
+                // Message Type
                 case 53:
                     msgType = value[0];
                 break;
 
+                 // Requested IP Address
                 case 50:
-                    ip = value; // requested ip address
+                    rquestedIp = value;
+                break;
+
+                // Server Identifier
+                case 54:
+                    serverIp = value;
+                break;
+
+                // Subnet Mask
+                case 1:
+                    subnet = value;
                 break;
             }
 
@@ -99,15 +113,20 @@ public class DHCPController {
         // controll part -------------------------------------------------------
         System.out.println(msgType);
 
+        boolean refreshTable = false;
+
         // extract or create record for client
         DHCPRecord record = DHCPDatabase.getRecord(chaddr);
-        if (record == null || true)
+
+        if (record == null && msgType == 1)
         {
             record = new DHCPRecord();
             record.ip = getNewIp();
             record.chaddr = chaddr;
             DHCPDatabase.data.add(record);
-            DHCPDatabase.model.fireTableDataChanged();
+
+            rquestedIp = record.ip;
+            refreshTable = true;
         }
 
         // decide on client request
@@ -117,21 +136,28 @@ public class DHCPController {
         {
             // Discover
             case 1:
-               responseType = 2; // Offer
+               responseType = 2; // DHCPOFFER
             break;
 
             // Request
             case 3:
-                if (compareIPs(ip, record.ip) == 0)
+                if (record != null && compareIPs(rquestedIp, record.ip) == 0 /*&& compareIPs(serverIp, InetAddress.getLocalHost().getAddress()) == 0*/)
                 {
-                    //record.ackTime = new Date(); // now
-                    //responseType = 5; // Ack
+                    record.ackTime = new Date(); // now
+                    refreshTable = true;
+                    responseType = 5; // DHCPACK
                 }
+
+                if (record == null && compareIPs(subnet, subnetMask) == 0 && (compareIPs(rquestedIp, ipRangeFirst) < 0 || compareIPs(rquestedIp, ipRangeLast) > 0))
+                    responseType = 6; // DHCPNAK
             break;
         }
 
+        if (refreshTable)
+            DHCPDatabase.model.fireTableDataChanged();
+
         if (responseType != 0)
-            return writeResponse(responseType, xid, record.ip, chaddr);
+            return writeResponse(responseType, xid, rquestedIp, chaddr);
 
         return false;
     }
@@ -167,12 +193,10 @@ public class DHCPController {
 
     public int index;
     public byte[] response;
-    public boolean writeResponse (int msgType, byte[] xid, byte[] ip, byte[] chaddr)
+    public boolean writeResponse (int msgType, byte[] xid, byte[] ip, byte[] chaddr) throws UnknownHostException
     {
         response = new byte[1000];
         for (int i = 0; i < response.length; i++) response[i] = 0;
-
-        try {
 
         InetAddress myIP = InetAddress.getLocalHost();
 
@@ -219,9 +243,5 @@ public class DHCPController {
         addResponseBytes(new byte[] {58, 4}); addResponseBytes(intToByteArray(12 * 3600));
 
         return true;
-
-        } catch (Exception e) { System.out.println(e.getMessage());}
-
-        return false;
     }
 }

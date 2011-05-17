@@ -73,7 +73,7 @@ public class DHCPServerApp extends SingleFrameApplication {
      */
     public static void main(String[] args) {
         launch(DHCPServerApp.class, args);
-            
+
         DHCPD server = new DHCPD();
         server.start();
 
