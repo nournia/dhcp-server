@@ -7,6 +7,8 @@ import java.util.Date;
 
 public class DHCPController {
 
+    enum DHCPMessage { INVALID, DHCPDISCOVER, DHCPOFFER, DHCPREQUEST, DHCPDECLINE, DHCPACK, DHCPNAK, DHCPRELEASE, DHCPINFORM };
+
     // options
     byte[] ipRangeFirst, ipRangeLast;
     byte[] subnetMask, defaultGateway, dnsServer;
@@ -78,7 +80,7 @@ public class DHCPController {
         byte[] chaddr = extractBytes(buffer, 28, 6);
         byte[] rquestedIp = new byte[4], serverIp = new byte[4], subnet = new byte[4];
 
-        int msgType = 0; // invalid message
+        DHCPMessage message = DHCPMessage.INVALID; // invalid message
         byte[] options = extractBytes(buffer, 240, length - 240);
         for (int i = 0; i < options.length - 1; i++)
         {
@@ -88,7 +90,7 @@ public class DHCPController {
             {
                 // Message Type
                 case 53:
-                    msgType = value[0];
+                    message = DHCPMessage.values()[value[0]];
                 break;
 
                  // Requested IP Address
@@ -111,14 +113,14 @@ public class DHCPController {
         }
 
         // controll part -------------------------------------------------------
-        System.out.println(msgType);
+        System.out.println(message.toString());
 
         boolean refreshTable = false;
 
         // extract or create record for client
         DHCPRecord record = DHCPDatabase.getRecord(chaddr);
 
-        if (record == null && msgType == 1)
+        if (record == null && message == DHCPMessage.DHCPDISCOVER)
         {
             record = new DHCPRecord();
             record.ip = getNewIp();
@@ -130,34 +132,46 @@ public class DHCPController {
         }
 
         // decide on client request
-        int responseType = 0;
+        DHCPMessage msgResponse = DHCPMessage.INVALID;
 
-        switch (msgType)
+        switch (message)
         {
-            // Discover
-            case 1:
-               responseType = 2; // DHCPOFFER
+            case DHCPDISCOVER:
+               msgResponse = DHCPMessage.DHCPOFFER;
             break;
 
-            // Request
-            case 3:
+            case DHCPREQUEST:
                 if (record != null && compareIPs(rquestedIp, record.ip) == 0 /*&& compareIPs(serverIp, InetAddress.getLocalHost().getAddress()) == 0*/)
                 {
                     record.ackTime = new Date(); // now
                     refreshTable = true;
-                    responseType = 5; // DHCPACK
+                    msgResponse = DHCPMessage.DHCPACK;
                 }
 
                 if (record == null && compareIPs(subnet, subnetMask) == 0 && (compareIPs(rquestedIp, ipRangeFirst) < 0 || compareIPs(rquestedIp, ipRangeLast) > 0))
-                    responseType = 6; // DHCPNAK
+                    msgResponse = DHCPMessage.DHCPNAK;
+            break;
+
+            case DHCPDECLINE:
+                // block declined ip permanently except for decline attack
+            break;
+
+            case DHCPRELEASE:
+                // remove assigned ip without response
+                if (record != null)
+                    DHCPDatabase.data.remove(record);
+            break;
+
+            case DHCPINFORM:
+                msgResponse = DHCPMessage.DHCPACK;
             break;
         }
 
         if (refreshTable)
             DHCPDatabase.model.fireTableDataChanged();
 
-        if (responseType != 0)
-            return writeResponse(responseType, xid, rquestedIp, chaddr);
+        if (msgResponse != DHCPMessage.INVALID)
+            return writeResponse(msgResponse, xid, rquestedIp, chaddr);
 
         return false;
     }
@@ -193,7 +207,7 @@ public class DHCPController {
 
     public int index;
     public byte[] response;
-    public boolean writeResponse (int msgType, byte[] xid, byte[] ip, byte[] chaddr) throws UnknownHostException
+    public boolean writeResponse (DHCPMessage msgResponse, byte[] xid, byte[] ip, byte[] chaddr) throws UnknownHostException
     {
         response = new byte[1000];
         for (int i = 0; i < response.length; i++) response[i] = 0;
@@ -219,9 +233,9 @@ public class DHCPController {
         addResponseBytes(intToByteArray(0x63825363)); // magic cookie
 
         // options
-       
+
         // Message type
-        addResponseBytes(new byte[] {53, 1, (byte)msgType});
+        addResponseBytes(new byte[] {53, 1, (byte) msgResponse.ordinal()});
         
         // DHCP Server Identifier
         addResponseBytes(new byte[] {54, 4}); addResponseBytes(myIP.getAddress());
