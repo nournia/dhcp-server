@@ -143,6 +143,7 @@ public class DHCPController {
             record = new DHCPRecord();
             record.ip = getNewIp();
             record.chaddr = chaddr;
+            record.hostName = new String(clientName);
             DHCPDatabase.data.add(record);
 
             rquestedIp = record.ip;

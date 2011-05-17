@@ -14,7 +14,7 @@ public class DHCPDatabase extends AbstractTableModel {
 
     public static DHCPDatabase model = new DHCPDatabase();
 
-    private String[] columnNames = {"Client Address", "IP Address", "Acked Time"};
+    private String[] columnNames = {"Host Name", "Client Add.", "IP Address", "Acked Time"};
     static ArrayList<DHCPRecord> data = new ArrayList<DHCPRecord>();
 
     // TODO indexed search of mac address
@@ -92,10 +92,12 @@ public class DHCPDatabase extends AbstractTableModel {
         switch (col)
         {
             case 0:
-                return formatMAC(record.chaddr);
+                return record.hostName;
             case 1:
-                return formatIp(record.ip);
+                return formatMAC(record.chaddr);
             case 2:
+                return formatIp(record.ip);
+            case 3:
                 if (record.ackTime != null)
                     return record.ackTime.toString();
         }
