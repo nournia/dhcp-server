@@ -19,10 +19,10 @@ public class DHCPDatabase extends AbstractTableModel {
         {
             DHCPRecord record = itr.next();
 
-            for (i = 0; i < 16; i++)
+            for (i = 0; i < 6; i++)
                 if (record.chaddr[i] != mac[i])
                     break;
-            if (i == 16)
+            if (i == 6)
                 return record;
         }
         return null;
@@ -47,17 +47,18 @@ public class DHCPDatabase extends AbstractTableModel {
         switch (col)
         {
             case 0:
-                return '1'; //record.chaddr;
+                return String.format("%2s:%2s:%2s:%2s:%2s:%2s", Integer.toHexString(record.chaddr[0]), Integer.toHexString(record.chaddr[1]), Integer.toHexString(record.chaddr[2]), Integer.toHexString(record.chaddr[3]), Integer.toHexString(record.chaddr[4]), Integer.toHexString(record.chaddr[5])).replace(" ", "0");
             case 1:
-                return '2'; //record.ip;
+                return String.format("%d.%d.%d.%d", DHCPController.byteToInt(record.ip[0]), DHCPController.byteToInt(record.ip[1]), DHCPController.byteToInt(record.ip[2]), DHCPController.byteToInt(record.ip[3]));
             case 2:
-                return '3'; //record.ackTime;
+                if (record.ackTime != null)
+                    return record.ackTime.toString();
         }
 
         return null;
     }
 
     public Class getColumnClass(int c) {
-        return getValueAt(0, c).getClass();
+        return ("").getClass();
     }
 }
