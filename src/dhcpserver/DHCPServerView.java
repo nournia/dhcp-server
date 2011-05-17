@@ -33,6 +33,8 @@ public class DHCPServerView extends FrameView {
         DHCPDatabase.logModel.addColumn("Client Add.");
         DHCPDatabase.logModel.addColumn("IP (offered/requested)");
 
+        DHCPDatabase.readFromFile();
+
         ipTable.setModel(DHCPDatabase.model);
         logTable.setModel(DHCPDatabase.logModel);
     }
@@ -169,6 +171,11 @@ public class DHCPServerView extends FrameView {
         javax.swing.ActionMap actionMap = org.jdesktop.application.Application.getInstance(dhcpserver.DHCPServerApp.class).getContext().getActionMap(DHCPServerView.class, this);
         exitMenuItem.setAction(actionMap.get("quit")); // NOI18N
         exitMenuItem.setName("exitMenuItem"); // NOI18N
+        exitMenuItem.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                exitMenuItemActionPerformed(evt);
+            }
+        });
         fileMenu.add(exitMenuItem);
 
         menuBar.add(fileMenu);
@@ -185,6 +192,10 @@ public class DHCPServerView extends FrameView {
         setComponent(mainPanel);
         setMenuBar(menuBar);
     }// </editor-fold>//GEN-END:initComponents
+
+    private void exitMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_exitMenuItemActionPerformed
+        DHCPDatabase.writeToFile();
+    }//GEN-LAST:event_exitMenuItemActionPerformed
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JTable ipTable;

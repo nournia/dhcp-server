@@ -1,9 +1,14 @@
 package dhcpserver;
 
+import java.io.BufferedWriter;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
-import javax.swing.JTable;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableModel;
 
@@ -59,6 +64,36 @@ public class DHCPDatabase extends AbstractTableModel {
             }
         }
         return true;
+    }
+
+
+    // store and retrieve data
+
+    static void writeToFile()
+    {
+       try{
+            System.out.println("write database");
+
+            FileOutputStream fstream = new FileOutputStream("db");
+            
+            ObjectOutputStream out = new ObjectOutputStream(fstream);
+            out.writeObject(data);
+
+            out.close();
+
+        } catch (Exception e){ System.err.println(e.getMessage()); }
+    }
+
+    static void readFromFile()
+    {
+        try {
+            FileInputStream fis = new FileInputStream("db");
+            ObjectInputStream in = new ObjectInputStream(fis);
+
+            DHCPDatabase.data = (ArrayList<DHCPRecord>)in.readObject();
+            
+            in.close();
+        } catch (Exception e){ System.err.println(e.getMessage()); }
     }
 
     // global functions
