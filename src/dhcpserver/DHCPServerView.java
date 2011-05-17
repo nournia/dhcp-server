@@ -27,6 +27,7 @@ public class DHCPServerView extends FrameView {
 
         initComponents();
 
+        DHCPDatabase.logModel.addColumn("Host Name");
         DHCPDatabase.logModel.addColumn("Request");
         DHCPDatabase.logModel.addColumn("Response");
         DHCPDatabase.logModel.addColumn("Client Add.");

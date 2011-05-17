@@ -15,7 +15,7 @@ public class DHCPController {
 
     public DHCPController()
     {
-        ipRangeFirst = new byte[] {(byte)192, (byte)168, (byte)0, (byte)0};
+        ipRangeFirst = new byte[] {(byte)192, (byte)168, (byte)13, (byte)0};
         ipRangeLast = new byte[] {(byte)192, (byte)168, (byte)255, (byte)255};
 
         subnetMask = new byte[] {(byte)255, (byte)255, (byte)255, (byte)0};
@@ -248,6 +248,7 @@ public class DHCPController {
         addResponseBytes(myIP.getAddress());
         addResponseBytes(new byte[] {0, 0, 0, 0}); // giaddr
         addResponseBytes(chaddr);
+        index += 10;
         index += 64; // sname
         index += 128; // file
 
