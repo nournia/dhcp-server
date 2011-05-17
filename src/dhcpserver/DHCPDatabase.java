@@ -55,7 +55,7 @@ public class DHCPDatabase extends AbstractTableModel {
             if (i == 4)
             {
                 int secondDiffs = (int)((record.ackTime.getTime() - (new Date()).getTime())/1000);
-                if (secondDiffs < 24 * 3600)
+                if (secondDiffs < DHCPController.dhcpOptions.leaseTime)
                 {
                     data.remove(record);
                     return true;

@@ -1,6 +1,10 @@
 
 package dhcpserver;
 
+import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Date;
@@ -9,20 +13,49 @@ public class DHCPController {
 
     enum DHCPMessage { INVALID, DHCPDISCOVER, DHCPOFFER, DHCPREQUEST, DHCPDECLINE, DHCPACK, DHCPNAK, DHCPRELEASE, DHCPINFORM };
 
-    // options
-    byte[] ipRangeFirst, ipRangeLast;
-    byte[] subnetMask, defaultGateway, dnsServer;
+    static DHCPOptions dhcpOptions = new DHCPOptions();
 
-    public DHCPController()
-    {
-        ipRangeFirst = new byte[] {(byte)192, (byte)168, (byte)13, (byte)0};
-        ipRangeLast = new byte[] {(byte)192, (byte)168, (byte)255, (byte)255};
+    public static class DHCPOptions {
+        
+        byte[] ipRangeFirst, ipRangeLast;
+        byte[] subnetMask, defaultGateway, dnsServer;
 
-        subnetMask = new byte[] {(byte)255, (byte)255, (byte)255, (byte)0};
-        defaultGateway = new byte[] {(byte)192, (byte)168, (byte)134, (byte)1};
-        dnsServer = new byte[] {(byte)4, (byte)2, (byte)2, (byte)4};
+        int leaseTime;
+
+        public DHCPOptions() {
+            // init
+            ipRangeFirst = new byte[] {(byte)192, (byte)168, (byte)13, (byte)0};
+            ipRangeLast = new byte[] {(byte)192, (byte)168, (byte)255, (byte)255};
+
+            subnetMask = new byte[] {(byte)255, (byte)255, (byte)255, (byte)0};
+            defaultGateway = new byte[] {(byte)192, (byte)168, (byte)134, (byte)1};
+            dnsServer = new byte[] {(byte)4, (byte)2, (byte)2, (byte)4};
+
+            leaseTime = 24 *  3600;
+
+            // read config from file
+            try {
+                FileInputStream fstream = new FileInputStream("config");
+                DataInputStream in = new DataInputStream(fstream);
+                BufferedReader br = new BufferedReader(new InputStreamReader(in));
+
+                ipRangeFirst = InetAddress.getByName(br.readLine()).getAddress();
+                ipRangeLast = InetAddress.getByName(br.readLine()).getAddress();
+                subnetMask = InetAddress.getByName(br.readLine()).getAddress();
+                defaultGateway = InetAddress.getByName(br.readLine()).getAddress();
+                dnsServer = InetAddress.getByName(br.readLine()).getAddress();
+                leaseTime = Integer.parseInt(br.readLine());
+
+//                String strLine;
+//                while ((strLine = br.readLine()) != null)   {
+//                  System.out.println (strLine);
+//                }
+                in.close();
+
+                System.out.println("config load");
+            } catch (Exception e){System.err.println(e.getMessage());}
+        }
     }
-
 
     void incIp(byte[] ip)
     {
@@ -49,7 +82,7 @@ public class DHCPController {
         if (lastIp == null)
         {
             lastIp = new byte[4];
-            System.arraycopy(ipRangeFirst, 0, lastIp, 0, 4);
+            System.arraycopy(dhcpOptions.ipRangeFirst, 0, lastIp, 0, 4);
         }
 
         byte[] tmp = new byte[4];
@@ -66,8 +99,8 @@ public class DHCPController {
             if (! DHCPDatabase.freeIp(lastIp))
                 continue;
 
-            if (compareIPs(lastIp, ipRangeFirst) < 0 || compareIPs(lastIp, ipRangeLast) > 0)
-                System.arraycopy(ipRangeFirst, 0, lastIp, 0, 4);
+            if (compareIPs(lastIp, dhcpOptions.ipRangeFirst) < 0 || compareIPs(lastIp, dhcpOptions.ipRangeLast) > 0)
+                System.arraycopy(dhcpOptions.ipRangeFirst, 0, lastIp, 0, 4);
 
             return lastIp;
         }
@@ -167,7 +200,7 @@ public class DHCPController {
                     msgResponse = DHCPMessage.DHCPACK;
                 }
 
-                if (record == null && compareIPs(subnet, subnetMask) == 0 && (compareIPs(rquestedIp, ipRangeFirst) < 0 || compareIPs(rquestedIp, ipRangeLast) > 0))
+                if (record == null && compareIPs(subnet, dhcpOptions.subnetMask) == 0 && (compareIPs(rquestedIp, dhcpOptions.ipRangeFirst) < 0 || compareIPs(rquestedIp, dhcpOptions.ipRangeLast) > 0))
                     msgResponse = DHCPMessage.DHCPNAK;
             break;
 
@@ -264,20 +297,20 @@ public class DHCPController {
         addResponseBytes(new byte[] {54, 4}); addResponseBytes(myIP.getAddress());
 
         // Subnet Mask = 255.255.255.0
-        addResponseBytes(new byte[] {1, 4}); addResponseBytes(subnetMask);
+        addResponseBytes(new byte[] {1, 4}); addResponseBytes(dhcpOptions.subnetMask);
 
         // Default Gateway
-        addResponseBytes(new byte[] {3, 4}); addResponseBytes(defaultGateway);
+        addResponseBytes(new byte[] {3, 4}); addResponseBytes(dhcpOptions.defaultGateway);
 
         // DNS Server
-        addResponseBytes(new byte[] {6, 4}); addResponseBytes(defaultGateway);
+        addResponseBytes(new byte[] {6, 4}); addResponseBytes(dhcpOptions.defaultGateway);
 
         // IP Address Lease Time = 1 day
-        addResponseBytes(new byte[] {51, 4}); addResponseBytes(intToByteArray(24 * 3600));
+        addResponseBytes(new byte[] {51, 4}); addResponseBytes(intToByteArray(dhcpOptions.leaseTime));
         // Rebinding Time = 0.75 day
-        addResponseBytes(new byte[] {59, 4}); addResponseBytes(intToByteArray(18 * 3600));
+        addResponseBytes(new byte[] {59, 4}); addResponseBytes(intToByteArray((int) 0.75 * dhcpOptions.leaseTime));
         // Renewal Time = 0.5 day
-        addResponseBytes(new byte[] {58, 4}); addResponseBytes(intToByteArray(12 * 3600));
+        addResponseBytes(new byte[] {58, 4}); addResponseBytes(intToByteArray((int) 0.5 * dhcpOptions.leaseTime));
 
         return true;
     }
