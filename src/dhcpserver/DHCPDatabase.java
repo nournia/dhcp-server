@@ -3,9 +3,14 @@ package dhcpserver;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
+import javax.swing.JTable;
 import javax.swing.table.AbstractTableModel;
+import javax.swing.table.DefaultTableModel;
 
 public class DHCPDatabase extends AbstractTableModel {
+
+    public static DefaultTableModel logModel = new DefaultTableModel();
+
 
     public static DHCPDatabase model = new DHCPDatabase();
 
@@ -56,6 +61,17 @@ public class DHCPDatabase extends AbstractTableModel {
         return true;
     }
 
+    // global functions
+
+    static String formatMAC(byte[] mac)
+    {
+        return String.format("%2s:%2s:%2s:%2s:%2s:%2s", Integer.toHexString(DHCPController.byteToInt(mac[0])), Integer.toHexString(DHCPController.byteToInt(mac[1])), Integer.toHexString(DHCPController.byteToInt(mac[2])), Integer.toHexString(DHCPController.byteToInt(mac[3])), Integer.toHexString(DHCPController.byteToInt(mac[4])), Integer.toHexString(DHCPController.byteToInt(mac[5]))).replace(" ", "0");
+    }
+
+    static String formatIp(byte[] ip)
+    {
+        return String.format("%d.%d.%d.%d", DHCPController.byteToInt(ip[0]), DHCPController.byteToInt(ip[1]), DHCPController.byteToInt(ip[2]), DHCPController.byteToInt(ip[3]));
+    }
 
     // model functions
     public int getColumnCount() {
@@ -76,9 +92,9 @@ public class DHCPDatabase extends AbstractTableModel {
         switch (col)
         {
             case 0:
-                return String.format("%2s:%2s:%2s:%2s:%2s:%2s", Integer.toHexString(record.chaddr[0]), Integer.toHexString(record.chaddr[1]), Integer.toHexString(record.chaddr[2]), Integer.toHexString(record.chaddr[3]), Integer.toHexString(record.chaddr[4]), Integer.toHexString(record.chaddr[5])).replace(" ", "0");
+                return formatMAC(record.chaddr);
             case 1:
-                return String.format("%d.%d.%d.%d", DHCPController.byteToInt(record.ip[0]), DHCPController.byteToInt(record.ip[1]), DHCPController.byteToInt(record.ip[2]), DHCPController.byteToInt(record.ip[3]));
+                return formatIp(record.ip);
             case 2:
                 if (record.ackTime != null)
                     return record.ackTime.toString();

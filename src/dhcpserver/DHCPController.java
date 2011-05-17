@@ -24,7 +24,6 @@ public class DHCPController {
     }
 
 
-
     void incIp(byte[] ip)
     {
         ip[3]++;
@@ -92,7 +91,7 @@ public class DHCPController {
     {
         byte[] xid = extractBytes(buffer, 4, 4);
         byte[] chaddr = extractBytes(buffer, 28, 6);
-        byte[] rquestedIp = new byte[4], serverIp = new byte[4], subnet = new byte[4];
+        byte[] rquestedIp = new byte[4], serverIp = new byte[4], subnet = new byte[4], clientName = new byte[1];
 
         DHCPMessage message = DHCPMessage.INVALID; // invalid message
         byte[] options = extractBytes(buffer, 240, length - 240);
@@ -120,6 +119,11 @@ public class DHCPController {
                 // Subnet Mask
                 case 1:
                     subnet = value;
+                break;
+
+                // Client Identifier
+                case 12:
+                    clientName = value;
                 break;
             }
 
@@ -185,7 +189,10 @@ public class DHCPController {
             DHCPDatabase.model.fireTableDataChanged();
 
         if (msgResponse != DHCPMessage.INVALID)
+        {
+            DHCPDatabase.logModel.addRow(new Object[] {new String(clientName), message.toString(), msgResponse.toString(), DHCPDatabase.formatMAC(chaddr), DHCPDatabase.formatIp(rquestedIp)});
             return writeResponse(msgResponse, xid, rquestedIp, chaddr);
+        }
 
         return false;
     }
