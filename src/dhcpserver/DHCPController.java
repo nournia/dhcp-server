@@ -23,7 +23,28 @@ public class DHCPController {
         dnsServer = new byte[] {(byte)4, (byte)2, (byte)2, (byte)4};
     }
 
-    byte[] lastIp;
+
+
+    void incIp(byte[] ip)
+    {
+        ip[3]++;
+        if (ip[3] == 0)
+        {
+            ip[2]++;
+            if (ip[2] == 0)
+            {
+                ip[1]++;
+                if (ip[1] == 0)
+                {
+                    ip[0]++;
+                    if (ip[0] == 0)
+                    {}
+                }
+            }
+        }
+    }
+
+    private byte[] lastIp;
     byte[] getNewIp()
     {
         if (lastIp == null)
@@ -31,33 +52,26 @@ public class DHCPController {
             lastIp = new byte[4];
             System.arraycopy(ipRangeFirst, 0, lastIp, 0, 4);
         }
-        else {
-            // increment ip
-            lastIp[3]++;
-            if (lastIp[3] == 0)
-            {
-                lastIp[2]++;
-                if (lastIp[2] == 0)
-                {
-                    lastIp[1]++;
-                    if (lastIp[1] == 0)
-                    {
-                        lastIp[0]++;
-                        if (lastIp[0] == 0)
-                            return null;
-                    }
-                }
-            }
-        }
 
-        // out of range ip
-        if (compareIPs(lastIp, ipRangeFirst) < 0 || compareIPs(lastIp, ipRangeLast) > 0)
+        byte[] tmp = new byte[4];
+        System.arraycopy(lastIp, 0, tmp, 0, 4);
+        while (true)
         {
-            System.arraycopy(ipRangeLast, 0, lastIp, 0, 4);
-            return null;
-        }
+            incIp(lastIp);
 
-        return lastIp;
+            // infinite loop avoidance
+            if (compareIPs(lastIp, tmp) == 0)
+                return null;
+
+            // if lastIp expired, free it.
+            if (! DHCPDatabase.freeIp(lastIp))
+                continue;
+
+            if (compareIPs(lastIp, ipRangeFirst) < 0 || compareIPs(lastIp, ipRangeLast) > 0)
+                System.arraycopy(ipRangeFirst, 0, lastIp, 0, 4);
+
+            return lastIp;
+        }
     }
 
 

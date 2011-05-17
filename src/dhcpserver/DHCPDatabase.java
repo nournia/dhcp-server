@@ -1,6 +1,7 @@
 package dhcpserver;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import javax.swing.table.AbstractTableModel;
 
@@ -11,6 +12,7 @@ public class DHCPDatabase extends AbstractTableModel {
     private String[] columnNames = {"Client Address", "IP Address", "Acked Time"};
     static ArrayList<DHCPRecord> data = new ArrayList<DHCPRecord>();
 
+    // TODO indexed search of mac address
     public static DHCPRecord getRecord(byte[] mac)
     {
         int i = 0;
@@ -27,6 +29,33 @@ public class DHCPDatabase extends AbstractTableModel {
         }
         return null;
     }
+
+    // TODO indexed search of Ip address
+    public static boolean freeIp(byte[] ip)
+    {
+        int i = 0;
+        Iterator<DHCPRecord> itr = data.iterator();
+        while (itr.hasNext())
+        {
+            DHCPRecord record = itr.next();
+
+            for (i = 0; i < 4; i++)
+                if (record.ip[i] != ip[i])
+                    break;
+            if (i == 4)
+            {
+                int secondDiffs = (int)((record.ackTime.getTime() - (new Date()).getTime())/1000);
+                if (secondDiffs < 24 * 3600)
+                {
+                    data.remove(record);
+                    return true;
+                }
+                return false;
+            }
+        }
+        return true;
+    }
+
 
     // model functions
     public int getColumnCount() {
