@@ -47,7 +47,8 @@ public class DHCPDatabase extends AbstractTableModel {
             if (Arrays.equals(record.ip, ip))
             {
                 boolean remove = false;
-                
+
+                // reserve time expire
                 if (record.ackTime == null && secondDiff(record.reserveTime, new Date()) < 120)
                     remove = true;
 
@@ -69,7 +70,7 @@ public class DHCPDatabase extends AbstractTableModel {
 
     public static int secondDiff(Date t1, Date t2)
     {
-        return (int)((t1.getTime() - t2.getTime())/1000);
+        return Math.abs((int)((t1.getTime() - t2.getTime())/1000));
     }
 
     // store and retrieve data
