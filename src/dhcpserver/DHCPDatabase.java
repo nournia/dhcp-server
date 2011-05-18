@@ -46,12 +46,18 @@ public class DHCPDatabase extends AbstractTableModel {
 
             if (Arrays.equals(record.ip, ip))
             {
-                int secondDiffs = (int)((record.ackTime.getTime() - (new Date()).getTime())/1000);
-                if (secondDiffs < DHCPController.dhcpOptions.leaseTime)
+                // TODO handle reserved
+
+                if (record.ackTime != null)
                 {
-                    data.remove(record);
-                    return true;
+                    int secondDiffs = (int)((record.ackTime.getTime() - (new Date()).getTime())/1000);
+                    if (secondDiffs < DHCPController.dhcpOptions.leaseTime)
+                    {
+                        data.remove(record);
+                        return true;
+                    }
                 }
+
                 return false;
             }
         }
