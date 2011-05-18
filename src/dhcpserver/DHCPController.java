@@ -179,9 +179,10 @@ public class DHCPController {
             record.hostName = new String(clientName);
             DHCPDatabase.data.add(record);
 
-            rquestedIp = record.ip;
             refreshTable = true;
         }
+        
+        rquestedIp = record.ip;
 
         // decide on client request
         DHCPMessage msgResponse = DHCPMessage.INVALID;
