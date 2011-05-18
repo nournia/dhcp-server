@@ -39,9 +39,11 @@ public class DHCPServerApp extends SingleFrameApplication {
                         // send
                         DatagramPacket sendPacket = new DatagramPacket(controller.response, controller.index, InetAddress.getByAddress(new byte[]{-1, -1, -1, -1}), 68);
                         socket.send(sendPacket);
+
+                        System.out.println("+");
                     }
                 } catch (Exception e) { 
-                    System.out.println( e.getMessage());
+                    System.out.println( "send error: " + e.getMessage());
                 }
             }
             } catch (Exception e) { System.out.println( e.getMessage()); }

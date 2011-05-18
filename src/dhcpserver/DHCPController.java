@@ -199,6 +199,7 @@ public class DHCPController {
             case DHCPDISCOVER:
                msgResponse = DHCPMessage.DHCPOFFER;
                rquestedIp = record.ip;
+               record.reserveTime = new Date();
             break;
 
             case DHCPREQUEST:

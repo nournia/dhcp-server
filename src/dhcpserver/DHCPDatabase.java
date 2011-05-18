@@ -46,16 +46,19 @@ public class DHCPDatabase extends AbstractTableModel {
 
             if (Arrays.equals(record.ip, ip))
             {
-                // TODO handle reserved
+                boolean remove = false;
+                
+                if (record.ackTime == null && secondDiff(record.reserveTime, new Date()) < 120)
+                    remove = true;
 
-                if (record.ackTime != null)
+                // lease time expire
+                if (record.ackTime != null && secondDiff(record.ackTime, new Date()) < DHCPController.dhcpOptions.leaseTime)
+                    remove = true;
+
+                if (remove)
                 {
-                    int secondDiffs = (int)((record.ackTime.getTime() - (new Date()).getTime())/1000);
-                    if (secondDiffs < DHCPController.dhcpOptions.leaseTime)
-                    {
-                        data.remove(record);
-                        return true;
-                    }
+                    data.remove(record);
+                    return true;
                 }
 
                 return false;
@@ -64,6 +67,10 @@ public class DHCPDatabase extends AbstractTableModel {
         return true;
     }
 
+    public static int secondDiff(Date t1, Date t2)
+    {
+        return (int)((t1.getTime() - t2.getTime())/1000);
+    }
 
     // store and retrieve data
 
