@@ -7,6 +7,7 @@ import java.io.FileWriter;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Iterator;
 import javax.swing.table.AbstractTableModel;
@@ -25,16 +26,11 @@ public class DHCPDatabase extends AbstractTableModel {
     // TODO indexed search of mac address
     public static DHCPRecord getRecord(byte[] mac)
     {
-        int i = 0;
         Iterator<DHCPRecord> itr = data.iterator();
         while (itr.hasNext())
         {
             DHCPRecord record = itr.next();
-
-            for (i = 0; i < 6; i++)
-                if (record.chaddr[i] != mac[i])
-                    break;
-            if (i == 6)
+            if (Arrays.equals(record.chaddr, mac))
                 return record;
         }
         return null;
@@ -43,16 +39,12 @@ public class DHCPDatabase extends AbstractTableModel {
     // TODO indexed search of Ip address
     public static boolean freeIp(byte[] ip)
     {
-        int i = 0;
         Iterator<DHCPRecord> itr = data.iterator();
         while (itr.hasNext())
         {
             DHCPRecord record = itr.next();
 
-            for (i = 0; i < 4; i++)
-                if (record.ip[i] != ip[i])
-                    break;
-            if (i == 4)
+            if (Arrays.equals(record.ip, ip))
             {
                 int secondDiffs = (int)((record.ackTime.getTime() - (new Date()).getTime())/1000);
                 if (secondDiffs < DHCPController.dhcpOptions.leaseTime)

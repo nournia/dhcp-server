@@ -52,6 +52,7 @@ public class DHCPServerView extends FrameView {
     private void initComponents() {
 
         mainPanel = new javax.swing.JPanel();
+        jTabbedPane1 = new javax.swing.JTabbedPane();
         jScrollPane1 = new javax.swing.JScrollPane();
         ipTable = new javax.swing.JTable();
         jScrollPane2 = new javax.swing.JScrollPane();
@@ -63,6 +64,8 @@ public class DHCPServerView extends FrameView {
         javax.swing.JMenuItem aboutMenuItem = new javax.swing.JMenuItem();
 
         mainPanel.setName("mainPanel"); // NOI18N
+
+        jTabbedPane1.setName("jTabbedPane1"); // NOI18N
 
         jScrollPane1.setName("jScrollPane1"); // NOI18N
 
@@ -98,6 +101,8 @@ public class DHCPServerView extends FrameView {
         ipTable.getColumnModel().getColumn(1).setHeaderValue(resourceMap.getString("dbTable.columnModel.title1")); // NOI18N
         ipTable.getColumnModel().getColumn(2).setResizable(false);
         ipTable.getColumnModel().getColumn(2).setHeaderValue(resourceMap.getString("dbTable.columnModel.title2")); // NOI18N
+
+        jTabbedPane1.addTab(resourceMap.getString("jScrollPane1.TabConstraints.tabTitle"), jScrollPane1); // NOI18N
 
         jScrollPane2.setName("jScrollPane2"); // NOI18N
 
@@ -135,24 +140,22 @@ public class DHCPServerView extends FrameView {
         logTable.getColumnModel().getColumn(3).setResizable(false);
         logTable.getColumnModel().getColumn(3).setHeaderValue(resourceMap.getString("logTable.columnModel.title1")); // NOI18N
 
+        jTabbedPane1.addTab(resourceMap.getString("jScrollPane2.TabConstraints.tabTitle"), jScrollPane2); // NOI18N
+
         javax.swing.GroupLayout mainPanelLayout = new javax.swing.GroupLayout(mainPanel);
         mainPanel.setLayout(mainPanelLayout);
         mainPanelLayout.setHorizontalGroup(
             mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, mainPanelLayout.createSequentialGroup()
+            .addGroup(mainPanelLayout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 349, Short.MAX_VALUE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 367, Short.MAX_VALUE)
+                .addComponent(jTabbedPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 514, Short.MAX_VALUE)
                 .addContainerGap())
         );
         mainPanelLayout.setVerticalGroup(
             mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, mainPanelLayout.createSequentialGroup()
+            .addGroup(mainPanelLayout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(jScrollPane2, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 327, Short.MAX_VALUE)
-                    .addComponent(jScrollPane1, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 327, Short.MAX_VALUE))
+                .addComponent(jTabbedPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 324, Short.MAX_VALUE)
                 .addContainerGap())
         );
 
@@ -194,6 +197,7 @@ public class DHCPServerView extends FrameView {
     private javax.swing.JTable ipTable;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
+    private javax.swing.JTabbedPane jTabbedPane1;
     private javax.swing.JTable logTable;
     private javax.swing.JPanel mainPanel;
     private javax.swing.JMenuBar menuBar;

@@ -190,7 +190,6 @@ public class DHCPController {
             refreshTable = true;
         }
         
-        rquestedIp = record.ip;
 
         // decide on client request
         DHCPMessage msgResponse = DHCPMessage.INVALID;
@@ -199,6 +198,7 @@ public class DHCPController {
         {
             case DHCPDISCOVER:
                msgResponse = DHCPMessage.DHCPOFFER;
+               rquestedIp = record.ip;
             break;
 
             case DHCPREQUEST:
@@ -224,7 +224,8 @@ public class DHCPController {
             break;
 
             case DHCPINFORM:
-                msgResponse = DHCPMessage.DHCPACK;
+                if (record != null)
+                    msgResponse = DHCPMessage.DHCPACK;
             break;
         }
 
