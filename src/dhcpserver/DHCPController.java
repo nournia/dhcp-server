@@ -4,6 +4,7 @@ package dhcpserver;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -39,22 +40,29 @@ public class DHCPController {
                 DataInputStream in = new DataInputStream(fstream);
                 BufferedReader br = new BufferedReader(new InputStreamReader(in));
 
-                ipRangeFirst = InetAddress.getByName(br.readLine()).getAddress();
-                ipRangeLast = InetAddress.getByName(br.readLine()).getAddress();
-                subnetMask = InetAddress.getByName(br.readLine()).getAddress();
-                defaultGateway = InetAddress.getByName(br.readLine()).getAddress();
-                dnsServer = InetAddress.getByName(br.readLine()).getAddress();
-                leaseTime = Integer.parseInt(br.readLine());
+                ipRangeFirst = InetAddress.getByName(extractConfigValue(br)).getAddress();
+                ipRangeLast = InetAddress.getByName(extractConfigValue(br)).getAddress();
+                subnetMask = InetAddress.getByName(extractConfigValue(br)).getAddress();
+                defaultGateway = InetAddress.getByName(extractConfigValue(br)).getAddress();
+                dnsServer = InetAddress.getByName(extractConfigValue(br)).getAddress();
+                leaseTime = Integer.parseInt(extractConfigValue(br));
 
-//                String strLine;
-//                while ((strLine = br.readLine()) != null)   {
-//                  System.out.println (strLine);
-//                }
                 in.close();
 
                 System.out.println("config load");
             } catch (Exception e){System.err.println(e.getMessage());}
         }
+    }
+
+    static String extractConfigValue(BufferedReader br) throws IOException
+    {
+        String line;
+        while ((line = br.readLine()) != null)
+        {
+            if (line.indexOf('=') > 0)
+                return line.substring(line.indexOf('=') + 1).trim();
+        }
+        return null;
     }
 
     void incIp(byte[] ip)
@@ -304,7 +312,7 @@ public class DHCPController {
         addResponseBytes(new byte[] {3, 4}); addResponseBytes(dhcpOptions.defaultGateway);
 
         // DNS Server
-        addResponseBytes(new byte[] {6, 4}); addResponseBytes(dhcpOptions.defaultGateway);
+        addResponseBytes(new byte[] {6, 4}); addResponseBytes(dhcpOptions.dnsServer);
 
         // IP Address Lease Time = 1 day
         addResponseBytes(new byte[] {51, 4}); addResponseBytes(intToByteArray(dhcpOptions.leaseTime));
