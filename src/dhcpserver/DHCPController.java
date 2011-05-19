@@ -19,7 +19,7 @@ public class DHCPController {
     public static class DHCPOptions {
         
         byte[] ipRangeFirst, ipRangeLast;
-        byte[] subnetMask, defaultGateway, dnsServer;
+        byte[] myIp, subnetMask, defaultGateway, dnsServer;
 
         int leaseTime;
 
@@ -42,6 +42,7 @@ public class DHCPController {
 
                 ipRangeFirst = InetAddress.getByName(extractConfigValue(br)).getAddress();
                 ipRangeLast = InetAddress.getByName(extractConfigValue(br)).getAddress();
+                myIp = InetAddress.getByName(extractConfigValue(br)).getAddress();
                 subnetMask = InetAddress.getByName(extractConfigValue(br)).getAddress();
                 defaultGateway = InetAddress.getByName(extractConfigValue(br)).getAddress();
                 dnsServer = InetAddress.getByName(extractConfigValue(br)).getAddress();
@@ -278,8 +279,6 @@ public class DHCPController {
         response = new byte[1000];
         for (int i = 0; i < response.length; i++) response[i] = 0;
 
-        InetAddress myIP = InetAddress.getLocalHost();
-
         index = 0;
         addResponseBytes(new byte[] {2}); // op
         addResponseBytes(new byte[] {1}); // htype
@@ -290,7 +289,7 @@ public class DHCPController {
         addResponseBytes(new byte[] {(byte)128, 0}); // flags
         addResponseBytes(new byte[] {0, 0, 0, 0}); // ciaddr
         addResponseBytes(ip);
-        addResponseBytes(myIP.getAddress());
+        addResponseBytes(dhcpOptions.myIp);
         addResponseBytes(new byte[] {0, 0, 0, 0}); // giaddr
         addResponseBytes(chaddr);
         index += 10;
@@ -305,7 +304,7 @@ public class DHCPController {
         addResponseBytes(new byte[] {53, 1, (byte) msgResponse.ordinal()});
         
         // DHCP Server Identifier
-        addResponseBytes(new byte[] {54, 4}); addResponseBytes(myIP.getAddress());
+        addResponseBytes(new byte[] {54, 4}); addResponseBytes(dhcpOptions.myIp);
 
         // Subnet Mask = 255.255.255.0
         addResponseBytes(new byte[] {1, 4}); addResponseBytes(dhcpOptions.subnetMask);
