@@ -129,11 +129,17 @@ public class DHCPController {
         return result;
     }
 
+    public static boolean isEmptyIp(byte[] ip)
+    {
+        return ip[0] == 0 && ip[1] == 0 && ip[2] == 0 && ip[3] == 0;
+    }
+
     public boolean readMessage (byte[] buffer, int length) throws UnknownHostException
     {
         byte[] xid = extractBytes(buffer, 4, 4);
         byte[] chaddr = extractBytes(buffer, 28, 6);
-        byte[] rquestedIp = new byte[4], serverIp = new byte[4], subnet = new byte[4], clientName = new byte[1];
+        byte[] ciaddr = extractBytes(buffer, 12, 4);
+        byte[] requestedIp = new byte[4], serverIp = new byte[4], subnet = new byte[4], clientName = new byte[1];
 
         DHCPMessage message = DHCPMessage.INVALID; // invalid message
         byte[] options = extractBytes(buffer, 240, length - 240);
@@ -150,7 +156,7 @@ public class DHCPController {
 
                  // Requested IP Address
                 case 50:
-                    rquestedIp = value;
+                    requestedIp = value;
                 break;
 
                 // Server Identifier
@@ -171,6 +177,9 @@ public class DHCPController {
 
             i += options[i+1] + 1;
         }
+
+        if (isEmptyIp(requestedIp) && ! isEmptyIp(ciaddr))
+            requestedIp = ciaddr;
 
         // controll part -------------------------------------------------------
         System.out.println(message.toString());
@@ -199,19 +208,19 @@ public class DHCPController {
         {
             case DHCPDISCOVER:
                msgResponse = DHCPMessage.DHCPOFFER;
-               rquestedIp = record.ip;
+               requestedIp = record.ip;
                record.reserveTime = new Date();
             break;
 
             case DHCPREQUEST:
-                if (record != null && compareIPs(rquestedIp, record.ip) == 0 /*&& compareIPs(serverIp, InetAddress.getLocalHost().getAddress()) == 0*/)
+                if (record != null && compareIPs(requestedIp, record.ip) == 0 /*&& compareIPs(serverIp, InetAddress.getLocalHost().getAddress()) == 0*/)
                 {
                     record.ackTime = new Date(); // now
                     refreshTable = true;
                     msgResponse = DHCPMessage.DHCPACK;
                 }
 
-                if (record == null && compareIPs(subnet, dhcpOptions.subnetMask) == 0 && (compareIPs(rquestedIp, dhcpOptions.ipRangeFirst) < 0 || compareIPs(rquestedIp, dhcpOptions.ipRangeLast) > 0))
+                if (record == null /*&& compareIPs(subnet, dhcpOptions.subnetMask) == 0 && (compareIPs(requestedIp, dhcpOptions.ipRangeFirst) < 0 || compareIPs(requestedIp, dhcpOptions.ipRangeLast) > 0)*/)
                     msgResponse = DHCPMessage.DHCPNAK;
             break;
 
@@ -236,8 +245,8 @@ public class DHCPController {
 
         if (msgResponse != DHCPMessage.INVALID)
         {
-            DHCPDatabase.logModel.addRow(new Object[] {new String(clientName), message.toString(), msgResponse.toString(), DHCPDatabase.formatMAC(chaddr), DHCPDatabase.formatIp(rquestedIp)});
-            return writeResponse(msgResponse, xid, rquestedIp, chaddr);
+            DHCPDatabase.logModel.addRow(new Object[] {new String(clientName), message.toString(), msgResponse.toString(), DHCPDatabase.formatMAC(chaddr), DHCPDatabase.formatIp(requestedIp)});
+            return writeResponse(msgResponse, xid, requestedIp, chaddr);
         }
 
         return false;
